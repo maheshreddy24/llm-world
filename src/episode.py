@@ -63,6 +63,27 @@ def parse_response(text, previous_plan):
     return 'noop', plan, reasoning, 'fail'
 
 
+def guess_death_cause(state):
+    """Best-effort explanation for a death. Crafter doesn't record a cause
+    directly, so this is inferred from what's on screen and vitals at the
+    fatal step -- 'unknown' when nothing obvious explains it."""
+    window = state['window'].values()
+    if state['faced'] == 'lava' or 'lava' in window:
+        return 'lava'
+    if 'zombie' in window:
+        return 'zombie'
+    if 'skeleton' in window or 'arrow' in window:
+        return 'skeleton'
+    vitals = state['vitals']
+    if vitals.get('food', 1) <= 0:
+        return 'starvation'
+    if vitals.get('drink', 1) <= 0:
+        return 'dehydration'
+    if vitals.get('energy', 1) <= 0:
+        return 'exhaustion'
+    return 'unknown'
+
+
 def crafter_score(success_rates):
     """Official Crafter score: geometric mean of per-achievement success rates (percent)."""
     rates = np.array([success_rates.get(name, 0.0) for name in ACHIEVEMENTS], dtype=float)
@@ -81,7 +102,7 @@ def run_episode(agent, args, seed, log_file, text_log, record_video, deadline, o
     state = read_state(env, seen)
     history, plan = [], ''
     frames = [obs] if record_video else None
-    reward_total, done, timed_out, completed = 0.0, False, False, 0
+    reward_total, done, timed_out, completed, dead = 0.0, False, False, 0, False
     parse_counts, action_counts = Counter(), Counter()
     started = time.monotonic()
 
@@ -108,6 +129,8 @@ def run_episode(agent, args, seed, log_file, text_log, record_video, deadline, o
         outcome = describe_outcome(before, state)
         reward_total += reward
         completed = step
+        dead = state['vitals'].get('health', 1) <= 0
+        death_cause = guess_death_cause(state) if dead else None
         if record_video and len(frames) < args.video_max_frames:
             frames.append(obs)
 
@@ -136,15 +159,20 @@ def run_episode(agent, args, seed, log_file, text_log, record_video, deadline, o
         log_file.write(json.dumps(record) + '\n')
         log_file.flush()
 
-        write_step(text_log, step=step, frame_name=frame_name, raw=raw, action=action,
+        write_step(text_log, step=step, frame_name=frame_name, action=action,
                    plan=plan, reasoning=reasoning, how=how, outcome=outcome,
-                   reward=reward, done=done,
+                   reward=reward, done=done, achievements=len(state['achievements']),
+                   died=death_cause,
                    user_text=telemetry['user_text'] if args.log_prompts else None)
 
         if args.verbose:
             flag = '' if how == 'tag' else f' ({how})'
             print(f'  [{seed}:{step}] {action}{flag} | plan: {plan[:40]} | '
-                  f'R {reward_total:.1f} | {outcome}', flush=True)
+                  f'R {reward_total:.1f} | achievements {len(state["achievements"])} | '
+                  f'{outcome}', flush=True)
+        if dead:
+            print(f'  [{seed}:{step}] DIED ({death_cause}) | '
+                  f'{len(state["achievements"])} achievements', flush=True)
 
         if step == args.preflight_steps:
             clean = parse_counts['tag'] / step
@@ -163,7 +191,7 @@ def run_episode(agent, args, seed, log_file, text_log, record_video, deadline, o
         'depth': max([ACHIEVEMENT_DEPTH.get(a, 0) for a in unlocked], default=0),
         'landmarks_found': sorted(seen),
         'seconds': time.monotonic() - started,
-        'complete': bool(done), 'timed_out': timed_out,
+        'complete': bool(done), 'timed_out': timed_out, 'died': dead,
         'frames': frames,
     }
 

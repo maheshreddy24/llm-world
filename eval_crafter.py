@@ -141,7 +141,8 @@ def main():
             elapsed = time.monotonic() - started
 
             if frames:
-                path = out / 'videos' / f'step{total_steps:08d}_seed{seed}.mp4'
+                died_tag = '_died' if result.get('died') else ''
+                path = out / 'videos' / f'step{total_steps:08d}_seed{seed}{died_tag}.mp4'
                 save_raw_video(frames, path, fps=args.video_fps)
                 print(f'  video -> {path}', flush=True)
                 record_next = False
@@ -150,6 +151,7 @@ def main():
                   f'R {result["reward"]:.1f} | depth {result["depth"]} | '
                   f'{len(result["achievements"])} achievements | '
                   f'{result["seconds"] / max(result["steps"], 1):.2f}s/step'
+                  f'{" | DIED" if result.get("died") else ""}'
                   f'{" | TRUNCATED (deadline)" if result["timed_out"] else ""}', flush=True)
 
             remaining = args.total_steps - total_steps

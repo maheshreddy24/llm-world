@@ -19,7 +19,7 @@ import crafter
 
 from src.agent import Agent
 from src.constants import ACTION_INDEX
-from src.episode import describe_outcome, parse_response
+from src.episode import describe_outcome, guess_death_cause, parse_response
 from src.observation import annotate_frame, format_observation, read_state
 from utils import build_video, new_run_dir, write_step
 
@@ -83,16 +83,22 @@ def main():
         obs, reward, done, _ = env.step(ACTION_INDEX[action])
         state = read_state(env, seen)
         outcome = describe_outcome(before, state)
+        dead = state['vitals'].get('health', 1) <= 0
+        death_cause = guess_death_cause(state) if dead else None
 
-        write_step(log, step=step, frame_name=frame_name, raw=raw, action=action,
+        write_step(log, step=step, frame_name=frame_name, action=action,
                    plan=plan, reasoning=reasoning, how=how, outcome=outcome,
-                   reward=reward, done=done, user_text=telemetry['user_text'])
+                   reward=reward, done=done, achievements=len(state['achievements']),
+                   died=death_cause, user_text=telemetry['user_text'])
 
         history.append({'step': step, 'action': action, 'outcome': outcome, 'plan': plan,
                         'reasoning': reasoning[:400]})
         history = history[-args.history:]
 
-        print(f'[step {step}] action={action} ({how}) | outcome: {outcome}')
+        print(f'[step {step}] action={action} ({how}) | '
+              f'achievements {len(state["achievements"])} | outcome: {outcome}')
+        if dead:
+            print(f'  DIED ({death_cause})')
         if done:
             print('Episode ended.')
             break

@@ -6,10 +6,10 @@ import crafter
 # Gemma 4, released 2026-04-02, Apache 2.0. Re-pull any weights older than the
 # 2026-07-15 checkpoint refresh (Flash Attention 4, chat template corrections).
 PRESETS = {
-    'smoke': 'google/gemma-4-E4B',       # 8B, ~16 GB bf16, fits the 40 GB card
-    'mid':   'google/gemma-4-12B-it',    # ~24 GB bf16
-    'full':  'google/gemma-4-26b-a4b',   # MoE 26B total / 4B active, ~54 GB bf16, needs 80 GB
-    'dense': 'google/gemma-4-31b-it',    # 31B dense, ~62 GB bf16, needs 80 GB
+    'smoke': 'google/gemma-4-E4B-it',       # 8B, ~16 GB bf16, fits the 40 GB card
+    'mid':   'google/gemma-4-12B-it',       # ~24 GB bf16
+    'full':  'google/gemma-4-26b-a4b-it',   # MoE 26B total / 4B active, ~54 GB bf16, needs 80 GB
+    'dense': 'google/gemma-4-31b-it',       # 31B dense, ~62 GB bf16, needs 80 GB
 }
 
 # Order must match crafter's action indices; asserted against the env at startup.
