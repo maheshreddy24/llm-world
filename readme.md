@@ -1,3 +1,30 @@
+
+# Setup
+
+```
+    bash ./setup.sh
+    conda init
+    conda activate temporal
+    pip install -r requirements.txt
+```
+
+Model choices
+smoke: 8B
+mid: 12B 
+full: 26B
+dense: 31B
+
+Smoke test:
+```
+python eval_crafter.py --preset full --manual text_files/crafter_info.txt --smoke
+```
+Final run:
+```
+python eval_crafter.py --preset full --manual text_files/crafter_info.txt \
+  --total-steps 20000 --checkpoint-every 5000
+```
+
+
 # Initial experiments
 
 A dummy run was done to understand if the 12B model was able to understand the environment.

@@ -17,8 +17,10 @@ from pathlib import Path
 
 import crafter
 
-from eval_crafter import Agent, ACTION_INDEX, describe_outcome, parse_response
-from observation import annotate_frame, format_observation, read_state
+from src.agent import Agent
+from src.constants import ACTION_INDEX
+from src.episode import describe_outcome, parse_response
+from src.observation import annotate_frame, format_observation, read_state
 from utils import build_video, new_run_dir, write_step
 
 

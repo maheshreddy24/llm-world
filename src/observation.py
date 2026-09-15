@@ -13,8 +13,8 @@ step on every decision and that is where small models drop tiles.
 Crafter's world coordinates are (x, y) with y increasing DOWNWARD, so 'up' is
 y-1. Getting this backwards is silent and costly.
 
-Drop-in: import format_observation, annotate_frame, MASTER_PROMPT, STEP_PROMPT
-into eval_crafter.py and replace read_state/format_state.
+Input/output encoding only -- the run loop and Agent live in src/episode.py and
+src/agent.py.
 """
 from PIL import Image, ImageDraw
 
