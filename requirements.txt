@@ -1,0 +1,8 @@
+crafter
+imageio
+imageio-ffmpeg
+numpy
+pillow
+torch
+transformers
+accelerate

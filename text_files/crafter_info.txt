@@ -1,0 +1,677 @@
+# Crafter — Rule Book for an LLM Agent
+
+## 1. Your Objective
+
+You are an agent playing **Crafter**, an open-world survival game.
+
+Your main objectives are:
+
+1. Stay alive.
+2. Explore the procedurally generated world.
+3. Collect resources.
+4. Craft tools.
+5. Place objects.
+6. Obtain food and water.
+7. Defend yourself from monsters.
+8. Unlock as many of the **22 achievements** as possible.
+
+The game rewards meaningful achievements such as collecting resources, crafting tools, finding food and water, defeating monsters, and safely waking after sleeping.
+
+There is no single fixed path through the world. Each episode generates a unique world, so you must adapt to what you observe.
+
+---
+
+# 2. The World
+
+The world is a randomly generated 2D environment.
+
+The underlying world uses a **64 × 64 grid**, but you do not directly observe this grid.
+
+The world contains:
+
+* Grasslands
+* Forests
+* Lakes
+* Mountains
+* Caves
+* Ores
+* Lava
+
+Relationships described by the game:
+
+* Lakes can have shores.
+* Grasslands can contain forests.
+* Mountains can contain caves.
+* Mountains can contain ores.
+* Mountains can contain lava.
+* Trees can appear in forests.
+* Skeletons can appear in caves.
+
+Objects are distributed randomly within the areas determined by the terrain generation.
+
+Every episode has a unique generated world. Do not assume that the layout, resource locations, or creature locations from a previous episode will remain the same.
+
+---
+
+# 3. What You Can See
+
+Your observation is a **64 × 64 × 3 color image**.
+
+The image contains two important parts:
+
+### World view
+
+The upper part shows a local top-down view around you.
+
+It covers:
+
+* 4 cells west of you
+* 4 cells east of you
+* 3 cells north of you
+* 3 cells south of you
+
+Therefore, you only directly see a small area around your current position.
+
+### Inventory/status view
+
+The lower part of the image shows your current:
+
+* Health
+* Food
+* Water
+* Rest
+* Collected materials
+* Crafted tools
+
+You must read this information from the image.
+
+You are **not** allowed to use privileged internal game information such as:
+
+* Numeric inventory counts
+* Achievement counts
+* Your exact grid coordinates
+* The semantic grid representation of the map
+
+These are forbidden observations for the agent and are only available for debugging/research purposes.
+
+---
+
+# 4. Survival Rules
+
+You have four important internal quantities:
+
+* **Health**
+* **Food**
+* **Water**
+* **Rest**
+
+Your goal is to prevent health, food, water, and rest from reaching dangerous levels.
+
+### Food
+
+Food decreases over time.
+
+Food can be restored by:
+
+* Chasing cows
+* Growing fruits and eating them
+
+### Water
+
+Water decreases over time.
+
+Water can be restored by:
+
+* Drinking from a lake
+
+### Rest
+
+Rest decreases over time.
+
+Rest can be restored by:
+
+* Sleeping
+
+You should sleep in locations where monsters cannot attack you.
+
+### When food, water, or rest reaches zero
+
+If **food**, **water**, or **rest** reaches zero, you begin losing health.
+
+### Health
+
+You lose health when:
+
+* Food reaches zero
+* Water reaches zero
+* Rest reaches zero
+* A monster attacks you
+* You fall into lava
+
+Health regenerates over time when you are:
+
+* Not hungry
+* Not thirsty
+* Not sleepy
+
+If health reaches zero, you die and the episode ends.
+
+---
+
+# 5. Time and Night
+
+Time of day matters.
+
+At night:
+
+* Your visual observation becomes restricted.
+* Your view becomes noisy.
+* More zombies are spawned.
+
+Therefore, surviving at night is more difficult.
+
+The paper states that securing shelter, such as a cave, can help survival during the night.
+
+Plan your movement and survival around the changing conditions.
+
+---
+
+# 6. Creatures
+
+There are three important creatures described:
+
+## Zombies
+
+* Live in grasslands.
+* Move randomly.
+* More zombies are spawned at night.
+* Can attack you.
+* You can interact with them to decrease their health.
+
+## Cows
+
+* Live in grasslands.
+* Move randomly.
+* Provide a food source.
+* You can interact with them.
+
+## Skeletons
+
+* Live in caves.
+* Try to maintain distance from you.
+* Attack by shooting arrows.
+* You can interact with them to decrease their health.
+
+Creatures are initialized at random locations and move randomly.
+
+---
+
+# 7. Resources
+
+Resources that can be collected include:
+
+* Saplings
+* Wood
+* Stone
+* Coal
+* Iron
+* Diamonds
+
+Collected resources go into your inventory.
+
+Resources are used to:
+
+* Build tools
+* Place objects
+
+Some resources require tools to collect, creating a multi-level technology tree.
+
+---
+
+# 8. Objects You Can Place
+
+You can place four types of objects:
+
+1. Stone
+2. Table
+3. Furnace
+4. Plant
+
+Placed objects are automatically placed **in front of you**.
+
+Requirements:
+
+| Object  | Requirement          |
+| ------- | -------------------- |
+| Stone   | Stone in inventory   |
+| Table   | Wood in inventory    |
+| Furnace | Stone in inventory   |
+| Plant   | Sapling in inventory |
+
+If the required material is not in your inventory, the action has no effect.
+
+---
+
+# 9. Tools You Can Craft
+
+There are six tools:
+
+### Wood Pickaxe
+
+Requires:
+
+* Nearby table
+* Wood
+
+### Stone Pickaxe
+
+Requires:
+
+* Nearby table
+* Wood
+* Stone
+
+### Iron Pickaxe
+
+Requires:
+
+* Nearby table
+* Furnace
+* Wood
+* Coal
+* Iron
+
+### Wood Sword
+
+Requires:
+
+* Nearby table
+* Wood
+
+### Stone Sword
+
+Requires:
+
+* Nearby table
+* Wood
+* Stone
+
+### Iron Sword
+
+Requires:
+
+* Nearby table
+* Furnace
+* Wood
+* Coal
+* Iron
+
+Tools remain in your inventory.
+
+Crafting actions that do not have their requirements satisfied have no effect.
+
+---
+
+# 10. Technology Progression
+
+The game has a technology tree.
+
+A basic progression described by the paper is:
+
+**Wood → Table → Wood Pickaxe → Stone → Furnace → Coal + Iron → Iron Pickaxe → Diamond**
+
+More specifically:
+
+* A table allows wood tools and stone tools to be crafted.
+* A wood pickaxe is needed for progression toward collecting stone.
+* A furnace requires stone.
+* Iron tools require a table, furnace, wood, coal, and iron.
+* Collecting diamonds requires an iron pickaxe.
+
+The paper explicitly describes diamond collection as requiring:
+
+**Iron Pickaxe → Furnace + Table + Coal + Iron + Wood**
+
+and the furnace progression as requiring:
+
+**Stone → Wood Pickaxe + Table**
+
+Therefore, deeper objectives require building on earlier objectives rather than attempting them independently.
+
+---
+
+# 11. Available Actions
+
+There are exactly **17 actions**, represented by integer IDs from **0 to 16**.
+
+| ID | Action             | Requirement                                              |
+| -: | ------------------ | -------------------------------------------------------- |
+|  0 | Noop               | Always applicable                                        |
+|  1 | Move Left          | Flat ground to the left                                  |
+|  2 | Move Right         | Flat ground to the right                                 |
+|  3 | Move Up            | Flat ground above                                        |
+|  4 | Move Down          | Flat ground below                                        |
+|  5 | Do                 | Facing a creature/material and having the necessary tool |
+|  6 | Sleep              | Energy/rest level is below maximum                       |
+|  7 | Place Stone        | Stone in inventory                                       |
+|  8 | Place Table        | Wood in inventory                                        |
+|  9 | Place Furnace      | Stone in inventory                                       |
+| 10 | Place Plant        | Sapling in inventory                                     |
+| 11 | Make Wood Pickaxe  | Nearby table + wood                                      |
+| 12 | Make Stone Pickaxe | Nearby table + wood + stone                              |
+| 13 | Make Iron Pickaxe  | Nearby table + furnace + wood + coal + iron              |
+| 14 | Make Wood Sword    | Nearby table + wood                                      |
+| 15 | Make Stone Sword   | Nearby table + wood + stone                              |
+| 16 | Make Iron Sword    | Nearby table + furnace + wood + coal + iron              |
+
+The **Do** action is used when facing a creature or material and having the necessary tool.
+
+If an action's requirements are not satisfied, the action simply has **no effect**.
+
+---
+
+# 12. How to Think About Movement
+
+Movement occurs on the world grid.
+
+You can move:
+
+* Left
+* Right
+* Up
+* Down
+
+Movement requires flat ground in the direction you are trying to move.
+
+Because your observation only covers your immediate surroundings, you must use exploration and memory to discover useful locations.
+
+In particular, remembering locations can be useful for:
+
+* Lakes for drinking
+* Open grasslands for finding food
+* Areas already searched for rare resources such as iron and diamonds
+
+The paper describes Crafter as partially observed because the agent only sees its immediate surroundings.
+
+---
+
+# 13. Sleeping
+
+The Sleep action is available when your rest/energy level is below maximum.
+
+Sleeping restores rest.
+
+However, sleeping should be done somewhere monsters cannot attack you.
+
+Caves are given by the paper as an example of shelter that can help protect against monsters at night.
+
+After sleeping safely, you can unlock the **Wake Up** achievement.
+
+---
+
+# 14. The 22 Achievements
+
+There are exactly **22 achievements**.
+
+### Resource collection
+
+1. Collect Coal
+2. Collect Diamond
+3. Collect Drink
+4. Collect Iron
+5. Collect Sapling
+6. Collect Stone
+7. Collect Wood
+
+### Combat
+
+8. Defeat Skeleton
+9. Defeat Zombie
+
+### Food
+
+10. Eat Cow
+11. Eat Plant
+
+### Pickaxes
+
+12. Make Iron Pickaxe
+13. Make Stone Pickaxe
+14. Make Wood Pickaxe
+
+### Swords
+
+15. Make Iron Sword
+16. Make Stone Sword
+17. Make Wood Sword
+
+### Placing objects
+
+18. Place Furnace
+19. Place Plant
+20. Place Stone
+21. Place Table
+
+### Sleeping
+
+22. Wake Up
+
+These achievements represent the meaningful behaviors used to evaluate the agent.
+
+---
+
+# 15. Achievement Strategy
+
+Achievements differ in difficulty.
+
+Some are independent and reward broad exploration.
+
+Others depend on previous achievements and therefore require deeper progression through the technology tree.
+
+Important principle:
+
+**Do not focus exclusively on one easy task. Explore and progress toward different achievements.**
+
+For example, collecting a diamond is substantially deeper than simply collecting wood because it requires progression through several technologies and resources.
+
+Several earlier tasks may also need to be repeated multiple times to progress further.
+
+---
+
+# 16. Reward
+
+When using the provided reward signal:
+
+### Achievement reward
+
+You receive:
+
+**+1 reward**
+
+when you unlock an achievement **for the first time during the current episode**.
+
+Unlocking the same achievement again in the same episode does not produce another achievement reward.
+
+### Health reward
+
+You receive:
+
+**−0.1 for every health point lost**
+
+and
+
+**+0.1 for every health point regenerated**.
+
+The maximum health is 9.
+
+Therefore, the health component only affects the first decimal place of the episode return.
+
+---
+
+# 17. What Ends an Episode
+
+An episode ends when:
+
+### Death
+
+Your health reaches zero.
+
+This can happen because of:
+
+* Hunger
+* Thirst
+* Tiredness
+* Zombie attacks
+* Skeleton attacks
+* Falling into lava
+
+### Time limit
+
+The episode also ends after:
+
+**10,000 environment steps**
+
+Health automatically regenerates when you are not too hungry, thirsty, or sleepy.
+
+---
+
+# 18. Practical Agent Priorities
+
+When deciding what to do, use the following priorities derived directly from the game's mechanics:
+
+### Priority 1 — Stay alive
+
+Monitor:
+
+* Health
+* Food
+* Water
+* Rest
+
+Do not allow food, water, or rest to reach zero because this causes health loss.
+
+### Priority 2 — Secure water and food
+
+Find and remember:
+
+* Lakes
+* Grasslands/cows
+* Plants/fruits
+
+### Priority 3 — Obtain basic resources
+
+Collect resources such as:
+
+* Wood
+* Stone
+* Saplings
+
+### Priority 4 — Establish crafting capability
+
+Place a table and use it to make basic tools.
+
+### Priority 5 — Progress through the technology tree
+
+Work toward:
+
+**Wood Pickaxe → Stone → Furnace → Coal/Iron → Iron Pickaxe → Diamond**
+
+### Priority 6 — Prepare for threats
+
+Zombies become more numerous at night.
+
+Skeletons inhabit caves and attack from a distance.
+
+Use shelter and weapons as appropriate.
+
+### Priority 7 — Explore broadly
+
+The world is procedurally generated, and the observation is local.
+
+Remember useful locations and search different areas for resources and achievements.
+
+---
+
+# 19. Agent Decision Loop
+
+At every step, follow this reasoning process:
+
+1. **Read the current image.**
+2. Identify your surroundings.
+3. Identify visible:
+
+   * Terrain
+   * Resources
+   * Objects
+   * Creatures
+   * Lava
+4. Read your visible:
+
+   * Health
+   * Food
+   * Water
+   * Rest
+   * Materials
+   * Tools
+5. Determine your immediate survival need.
+6. Determine which achievable objective is useful next.
+7. Check whether you have the requirements for the desired action.
+8. If a requirement is missing, explore and collect what is needed.
+9. Execute one of the 17 valid actions.
+10. Observe the new state and repeat.
+
+Remember that your local image does not reveal the entire world, so exploration and memory are important.
+
+---
+
+# 20. Important Constraints
+
+The following rules are especially important:
+
+* The world changes between episodes.
+* Do not assume fixed resource locations.
+* You only observe a local area.
+* Inventory information must be read from the image.
+* Exact coordinates are not available to you.
+* Numeric inventory counts are not available to you.
+* Achievement counts are not available to you.
+* Actions with unmet requirements have no effect.
+* Tools remain in inventory.
+* Placed objects appear automatically in front of you.
+* Food, water, and rest decrease over time.
+* Reaching zero in food, water, or rest causes health loss.
+* Monsters can damage you.
+* Lava can kill you.
+* Night makes visibility worse and increases the number of zombies.
+* The episode ends at zero health or 10,000 steps.
+
+---
+
+# 21. Core Mental Model
+
+Think of Crafter as a loop:
+
+**SURVIVE → EXPLORE → COLLECT → CRAFT → PROGRESS → ACHIEVE → SURVIVE**
+
+You should simultaneously maintain your survival needs while building toward increasingly difficult achievements.
+
+The deepest progression described in the paper is:
+
+**Basic resources**
+→ **Table**
+→ **Wood Pickaxe**
+→ **Stone**
+→ **Furnace**
+→ **Coal + Iron**
+→ **Iron Pickaxe**
+→ **Diamond**
+
+while also maintaining:
+
+**Water + Food + Rest + Health**
+
+and defending yourself from:
+
+**Zombies + Skeletons + Lava**.
+
+The ultimate goal is not merely to perform one action repeatedly, but to successfully unlock a broad range of the 22 achievements across the generated world.
