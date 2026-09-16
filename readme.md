@@ -1,6 +1,6 @@
 
 # Setup
-
+Environment
 ```
     bash ./setup.sh
     conda init
@@ -9,10 +9,10 @@
 ```
 
 Model choices
-smoke: 8B
-mid: 12B 
-full: 26B
-dense: 31B
+- smoke: 8B
+- mid: 12B
+- full: 26B
+- dense: 31B
 
 Smoke test:
 ```
