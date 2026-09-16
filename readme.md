@@ -80,3 +80,15 @@ off-screen).
 > </reasoning>
 > <action>one_action_name_from_the_list</action>
 > ```
+
+# Results
+
+Final run (`full` preset, 26B model `gemma-4-26b-a4b-it`, 3 episodes, 561 env steps, ~1h21m wall clock):
+- Crafter score **3.98**, mean reward **5.77 ± 0.27**
+- Reliable every episode (100%): `collect_wood`, `collect_stone`, `make_wood_pickaxe`, `place_table`
+- Reached in ~2/3 episodes: `collect_coal`, `collect_drink`, `collect_sapling`, `eat_cow`
+- Never reached in any episode: `collect_iron`, any stone/iron tool beyond the wood pickaxe, `collect_diamond`, `place_furnace`/`place_stone`/`place_plant`, `defeat_skeleton`/`defeat_zombie`, `eat_plant`, `wake_up`
+
+All three episodes ended in death rather than surviving to the step cap — two to zombies, one to a skeleton — each after unlocking 6-7 of the 22 achievements. The common failure mode: the model let food/drink/energy drain to critical levels (1-3/9) while it kept searching for resources, and by the time a mob showed up it was too weak to fight or flee, so it died to combat damage on top of an already-starved state. It consistently mastered the wood/table/pickaxe/stone opening but never crossed into the iron tier, so the diamond branch of the tech tree was never in reach.
+
+sample video: runs/full/run_20260915_104219/videos/step00000204_seed0_died.mp4 (first death of the run, to a zombie, after 7 achievements)
